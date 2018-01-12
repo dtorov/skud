@@ -1,0 +1,112 @@
+{
+	"appLogFile": "./log/app.log",
+	"skudLogFile": "./log/skud.log",
+	"appTCPPort": 4468,
+	"restKey": "YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL",
+	"management": {"addr":"127.0.0.1/niva_elevator/hs/rav_nais","port":"80"},
+	"org": "ООО Рав Нива",
+	"platforms": {
+		"lab": {
+			"name": "lab",
+			"readableName": "Лаборатория",
+			"driver": "nais",
+			"addr":"10.2.3.112",
+			"port":"4001",
+			"devices": {
+				"s1": true, "s2": true, "s3": true,
+				"r1": 1, "r2": 2, "r3": 3,
+				"tl1": "1", "tl2": "1", "tl3": "1", "tl4": "1",
+				"sb1": false, "sb2": "tablo4", "sb3": "tablo2", "sb4": false,
+				"b1": false, "b2": false
+				},
+			"scoreBoardService": {"addr": "127.0.0.1","port": 5000},	
+			"scoreBoardDefaultMessage": "Добро пожаловать!",			
+			"weightTerminal": false,
+			"cardBehavior": {
+				"regular": {
+					"sendEvent": true,
+					"actions": []
+					},
+				"guard": {
+					"sendEvent": false,
+					"actions": []
+					},
+				"temp": {
+					"sendEvent": true,
+					"actions": []
+					},
+				"unknown": {
+					"sendEvent": true,
+					"actions": []
+					}	
+				},
+				"externalEvents": [
+					{"action": "letIn", "type": "scoreBoard", "device": "sb3", "text": "Проезжайте"},
+					{"action": "letOut", "type": "scoreBoard", "device": "sb2", "text": "Проезжайте"}
+				]
+			},
+		"weight": {
+			"name": "weight",
+			"readableName": "Весовая",
+			"driver": "nais",
+			"addr":"10.2.3.13",
+			"port":"4001",
+			"devices": {
+				"s1": true, "s2": true, "s3": true,
+				"r1": 1, "r2": 2, "r3": 3,
+				"tl1": false, "tl2": "1", "tl3": "1", "tl4": false,
+				"sb1": false, "sb2": "tablo1", "sb3": "tablo3", "sb4": false,
+				"b1": "closed", "b2": "closed"
+				},
+			"scoreBoardService": {"addr": "127.0.0.1","port": 5000},
+			"scoreBoardDefaultMessage": "Добро пожаловать!",
+			"weightTerminal": {
+				"driver": "nais",
+				"addr":"192.168.1.149",
+				"port":"6000"
+				},
+			"cardBehavior": {
+				"regular": {
+					"sendEvent": true,
+					"actions": [
+						{"reader": "r1", "type": "barrier", "device": "b1", "action": "open", "waitToCloseFromOutside": true},
+						{"reader": "r1", "type": "scoreBoard", "device": "sb3", "text": "Приложите карту к считывателю."},
+						{"reader": "r1", "type": "setLight", "state": "1000"},						
+						{"reader": "r2", "type": "sendWeight"},
+						{"reader": "r2", "type": "scoreBoard", "device": "sb2", "text": "weight"},
+						{"reader": "r2", "type": "scoreBoard", "device": "sb3", "text": "weight"}
+						]
+					},
+				"guard": {
+					"sendEvent": false,
+					"actions": [
+						{"reader": "r1", "type": "barrier", "device": "b1", "action": "switch"},
+						{"reader": "r2", "type": "barrier", "device": "b2", "action": "switch"},
+						{"reader": "r3", "type": "barrier", "device": "b2", "action": "switch", "waitToCloseFromOutside": true},
+						{"reader": "r3", "type": "scoreBoard", "device": "sb2", "text": "Приложите карту к считывателю."}
+						]
+					},
+				"temp": {
+					"sendEvent": true,
+					"actions": [
+						{"reader": "r1", "type": "barrier", "device": "b1", "action": "open"},
+						{"reader": "r1", "type": "scoreBoard", "device": "sb2", "text": "Приложите карту к считывателю."},
+						{"reader": "r2", "type": "sendWeght"},
+						{"reader": "r2", "type": "scoreBoard", "device": "sb1", "text": "weight"},
+						{"reader": "r2", "type": "scoreBoard", "device": "sb2", "text": "weight"}
+						]
+					},
+				"unknown": {
+					"sendEvent": false,
+					"actions": []
+					}	
+				},
+			"externalEvents": [
+				{"action": "letIn", "type": "barrier", "device": "b2", "action": "open", "waitToCloseFromInside": true},
+				{"action": "letIn", "type": "scoreBoard", "device": "sb3", "text": "Проезжайте"},
+				{"action": "letOut", "type": "barrier", "device": "b1", "action": "open", "waitToCloseFromInside": true},
+				{"action": "letOut", "type": "scoreBoard", "device": "sb2", "text": "Проезжайте"}
+			]
+			}
+		}
+}
