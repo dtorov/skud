@@ -1,23 +1,23 @@
-
+'use strict';
 
 var controller = function(config,log,callback) {
 	
-	var name = config.name;
-	
-	log.app('controller driver start '+config.addr+':'+config.port);
 	var self = this;
-	
-	var crc 			= require('crc');
-	var connected = false;
+
+	log.app('controller driver start '+config.addr+':'+config.port);
+
+	var crc 			= require('crc');	
 	var tcpSock 		= require('net');
 	var tcpClient  		= new tcpSock.Socket;
 	var pSocket='';
 	
-	var lastSensorState = '';
-	
+	var connected = false;
+	var lastSensorState = '111';
+	var name = config.name;
+
 	// шлагбаумы
-	self.barrierOutside = {"state": "", "waitToClose": false, "waitToCloseFromOutside": false};
-	self.barrierInside = {"state": "", "waitToClose": false, "waitToCloseFromOutside": false};
+	self.barrierOutside = {"state": "", "waitToCloseFromInside": false, "waitToCloseFromOutside": false};
+	self.barrierInside = {"state": "", "waitToCloseFromInside": false, "waitToCloseFromOutside": false};
 	
 	function tcpConnect(){			
 		pSocket = tcpClient.connect(config.port,config.addr);
@@ -25,17 +25,15 @@ var controller = function(config,log,callback) {
 	
 	// стартуем платформу
 	tcpConnect();
-	
-	
-	
+		
 	pSocket.on("connect",function(data){
 		connected = true;
-		log.skud(config.name + ': platform connected');
+		log.skud(config.name + ': платформа подключена');
 	});
 	
 	pSocket.on("data", function(data){
 		callback(convertData(data));
-		console.log(config.name+': '+ data);
+		log.skud(config.name+': '+ data,1);
 	});
 	
 	pSocket.on("error", function(err){    
@@ -71,7 +69,7 @@ var controller = function(config,log,callback) {
 					state = '00' + state;
 					} else {if(state.length < 3){state = '0' + state;}}
 				result.type = 'sensor';
-				result.value = state[1]+state[0]+state[2];
+				result.value = ''+state[2]+state[0]+state[1];
 				lastSensorState = result.value;	
 			break;			
 			case 'W': // пришла метка
@@ -93,7 +91,15 @@ var controller = function(config,log,callback) {
 			case 'K':		
 			// шлагбаумы
 				result.type = 'barrier';
-				result.value = data[9];
+				//result.value = data[9];
+				switch(data[9]){
+					case 'F':
+					result.value = 'barrier closed';
+					break
+					case '7':
+					result.value = 'barrier opened';
+					break
+				}
 			break
 			default:
 				result.type = 'unknown';
@@ -138,8 +144,8 @@ var controller = function(config,log,callback) {
 				sendMessage(commandLine);
 			}
 						
-			log.skud('Светофор на платформе '+name + ': ' + state);
-			return 'ok';
+			log.skud(config.name+': светофоры : ' + state,1);
+			return JSON.stringify({"result": "ok"});
 		
 	}
 	
@@ -148,51 +154,55 @@ var controller = function(config,log,callback) {
 		if(connected){
 			setTimeout(function(){
 				sendMessage(':01K04L62\r');
-				log.skud(config.name+': Шлагбаум 2 открыт');
+				log.skud(config.name+': шлагбаум 2 открыт');
 				self.barrierInside.state = 'open';
 				},time);			
 			return 'ok';
-		}
+		} else {return 'error'}
 	}
 
 	self.barrierInside.toClose = function (time){
 		if(connected){
 			setTimeout(function(){
-				sendMessage(':01K04H03\r');
-				log.skud(config.name+': Шлагбаум 2 закрыт');
-				self.barrierInside.state = 'closed';
-				self.barrierInside.waitToClose = false;
-				self.barrierInside.waitToCloseFromOutside = false;
+				if(lastSensorState[2] == '1'){
+					sendMessage(':01K04H03\r');
+					log.skud(config.name+': шлагбаум 2 закрыт');
+					self.barrierInside.state = 'closed';
+					self.barrierInside.waitToCloseFromInside = false;
+					self.barrierInside.waitToCloseFromOutside = false;
+				} else {log.skud(config.name+': шлагбаум 2 НЕ закрыт, т.к. нарушен периметр');}
 				},time);
 			
 			return 'ok';
-		}
+		} else {return 'error'}
 	}
 
 	self.barrierOutside.toOpen = function (time){
 		if(connected){
 			setTimeout(function(){
 				sendMessage(':01K02Lc8\r');
-				log.skud(config.name+': Шлагбаум 1 открыт');
+				log.skud(config.name+': шлагбаум 1 открыт');
 				self.barrierOutside.state = 'open';
 				},time);
 				
 			return 'ok';
-		}
+		} else {return 'error'}
 	}
 
 	self.barrierOutside.toClose = function (time){
-		if(connected){
+		if(connected){		
 			setTimeout(function(){
-				sendMessage(':01K02Ha9\r');
-				log.skud(config.name+': Шлагбаум 1 закрыт');
-				self.barrierOutside.state = 'closed';
-				self.barrierOutside.waitToClose = false;
-				self.barrierOutside.waitToCloseFromOutside = false;
+				if(lastSensorState[0] == '1'){
+					sendMessage(':01K02Ha9\r');
+					log.skud(config.name+': шлагбаум 1 закрыт');
+					self.barrierOutside.state = 'closed';
+					self.barrierOutside.waitToCloseFromInside = false;
+					self.barrierOutside.waitToCloseFromOutside = false;
+				} else {log.skud(config.name+': шлагбаум 1 НЕ закрыт, т.к. нарушен периметр');}
 				},time);	
 			
 			return 'ok';
-		}
+		} else {return 'error'}
 	}
 	// вспомогательные функции
 	function getReaderId(id) {

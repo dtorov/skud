@@ -1,23 +1,24 @@
 {
 	"appLogFile": "./log/app.log",
 	"skudLogFile": "./log/skud.log",
-	"appTCPPort": 4468,
+	"appTCPPort": 4462,
 	"restKey": "YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL",
-	"management": {"addr":"127.0.0.1/niva_elevator/hs/rav_nais","port":""},
+	"management": {"addr":"127.0.0.1/niva_elevator/hs/rav_nais","port":"80"},
 	"org": "ООО Рав Нива",
 	"platforms": {
 		"lab": {
 			"name": "lab",
 			"readableName": "Лаборатория",
 			"driver": "nais",
-			"addr":"10.2.3.112",
+			"addr":"10.2.3.12",
 			"port":"4001",
 			"devices": {
 				"s1": true, "s2": true, "s3": true,
 				"r1": 1, "r2": 2, "r3": 3,
 				"tl1": "1", "tl2": "1", "tl3": "1", "tl4": "1",
 				"sb1": false, "sb2": "tablo4", "sb3": "tablo2", "sb4": false,
-				"b1": false, "b2": false
+				"b1": false, "b2": false,
+				"button1": false, "button2": false
 				},
 			"scoreBoardService": {"addr": "127.0.0.1","port": 5000},	
 			"scoreBoardDefaultMessage": "Добро пожаловать!",			
@@ -39,26 +40,31 @@
 					"sendEvent": true,
 					"actions": []
 					}	
-				}
+				},
+				"externalEvents": [
+					{"extaction": "letIn", "type": "scoreBoard", "device": "sb3", "text": "Проезжайте"},
+					{"extaction": "letOut", "type": "scoreBoard", "device": "sb2", "text": "Проезжайте"}
+				]
 			},
 		"weight": {
 			"name": "weight",
 			"readableName": "Весовая",
 			"driver": "nais",
-			"addr":"10.2.3.113",
+			"addr":"10.2.3.13",
 			"port":"4001",
 			"devices": {
 				"s1": true, "s2": true, "s3": true,
 				"r1": 1, "r2": 2, "r3": 3,
 				"tl1": false, "tl2": "1", "tl3": "1", "tl4": false,
-				"sb1": false, "sb2": "tablo1", "sb3": "tablo3", "sb4": false,
-				"b1": "closed", "b2": "closed"
+				"sb1": false, "sb2": "tablo3", "sb3": "tablo1", "sb4": false,
+				"b1": "closed", "b2": "closed",
+				"button1": false, "button2": false
 				},
 			"scoreBoardService": {"addr": "127.0.0.1","port": 5000},
 			"scoreBoardDefaultMessage": "Добро пожаловать!",
 			"weightTerminal": {
 				"driver": "nais",
-				"addr":"192.168.1.149",
+				"addr":"192.168.1.49",
 				"port":"6000"
 				},
 			"cardBehavior": {
@@ -66,11 +72,11 @@
 					"sendEvent": true,
 					"actions": [
 						{"reader": "r1", "type": "barrier", "device": "b1", "action": "open", "waitToCloseFromOutside": true},
-						{"reader": "r1", "type": "scoreBoard", "device": "sb2", "text": "Приложите карту к считывателю."},
+						{"reader": "r1", "type": "scoreBoard", "device": "sb3", "text": "Приложите карту к считывателю."},
 						{"reader": "r1", "type": "setLight", "state": "1000"},						
 						{"reader": "r2", "type": "sendWeight"},
-						{"reader": "r2", "type": "scoreBoard", "device": "sb1", "text": "weight"},
-						{"reader": "r2", "type": "scoreBoard", "device": "sb2", "text": "weight"}
+						{"reader": "r2", "type": "scoreBoard", "device": "sb2", "text": "weight"},
+						{"reader": "r2", "type": "scoreBoard", "device": "sb3", "text": "weight"}
 						]
 					},
 				"guard": {
@@ -84,18 +90,30 @@
 				"temp": {
 					"sendEvent": true,
 					"actions": [
-						{"reader": "r1", "type": "barrier", "device": "b1", "action": "open"},
-						{"reader": "r1", "type": "scoreBoard", "device": "sb2", "text": "Приложите карту к считывателю."},
-						{"reader": "r2", "type": "sendWeght"},
-						{"reader": "r2", "type": "scoreBoard", "device": "sb1", "text": "weight"},
-						{"reader": "r2", "type": "scoreBoard", "device": "sb2", "text": "weight"}
+						{"reader": "r1", "type": "barrier", "device": "b1", "action": "open", "waitToCloseFromOutside": true},
+						{"reader": "r1", "type": "scoreBoard", "device": "sb3", "text": "Приложите карту к считывателю."},
+						{"reader": "r2", "type": "sendWeight"},
+						{"reader": "r2", "type": "scoreBoard", "device": "sb2", "text": "weight"},
+						{"reader": "r2", "type": "scoreBoard", "device": "sb3", "text": "weight"}
 						]
 					},
 				"unknown": {
-					"sendEvent": false,
-					"actions": []
+					"sendEvent": true,
+					"actions": [
+						{"reader": "r1", "type": "barrier", "device": "b1", "action": "open", "waitToCloseFromOutside": true},
+						{"reader": "r1", "type": "scoreBoard", "device": "sb3", "text": "Приложите карту к считывателю."},
+						{"reader": "r2", "type": "sendWeight"},
+						{"reader": "r2", "type": "scoreBoard", "device": "sb2", "text": "weight"},
+						{"reader": "r2", "type": "scoreBoard", "device": "sb3", "text": "weight"}
+						]
 					}	
-				}
+				},
+			"externalEvents": [
+				{"extaction": "letIn", "type": "barrier", "device": "b2", "action": "open", "waitToCloseFromInside": true},
+				{"extaction": "letIn", "type": "scoreBoard", "device": "sb3", "text": "Проезжайте"},
+				{"extaction": "letOut", "type": "barrier", "device": "b1", "action": "open", "waitToCloseFromInside": true},
+				{"extaction": "letOut", "type": "scoreBoard", "device": "sb2", "text": "Проезжайте"}
+			]
 			}
 		}
 }

@@ -52,8 +52,9 @@
 
 	var platforms = {};
 	var apiKey = "YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL";
-    var apiAddr = "http://127.0.0.1:4468/config/get?key=YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL";
-    $.getJSON( apiAddr, {})
+	var apiAddr = "http://"+window.location.host;
+	console.log('apiAddr ' + apiAddr);
+	$.getJSON( apiAddr + '/config/get?key='+apiKey, {})
         .done(function( data ) {
         //document.getElementById('result').innerHTML = JSON.stringify(data, null, " ");
 		$("#result").html(JSON.stringify(data, null, " "));
@@ -65,7 +66,7 @@
 	function getWeight(pname) {
 					console.log(pname);
 					// http://127.0.0.1:4468/getweight?pname=lab&key=key
-					let req = 'http://127.0.0.1:4468/getweight?pname='+pname+'&key='+apiKey;
+					let req = apiAddr+'/getweight?pname='+pname+'&key='+apiKey;
 					$.getJSON( req, {})
                 		.done(function( res ) {
 							if(!res.error){
@@ -81,7 +82,7 @@
 		let pname = toDo[0],
 			barrier = toDo[1],
 			action = toDo[2];
-		let req = 'http://127.0.0.1:4468/barrier?pname='+pname+'&b='+barrier+'&action='+action+'&key='+apiKey;
+		let req = apiAddr+'/barrier?pname='+pname+'&b='+barrier+'&action='+action+'&key='+apiKey;
 		$.getJSON( req, {})
                 		.done(function( res ) {
 							if(!res.error){
@@ -101,7 +102,7 @@
 			text = document.getElementById(pname+"."+sbname+".text").value;
 			//text = $("#"+pname+"."+sbname+".text").val(); 
 			console.log($("#"+pname+"."+sbname+".text").val())
-		let req = 'http://127.0.0.1:4468/scoreboard/send?pname='+pname+'&sbname='+sbname+'&message='+text+'&key='+apiKey;
+		let req = apiAddr+'/scoreboard/send?pname='+pname+'&sbname='+sbname+'&message='+text+'&key='+apiKey;
 		$.getJSON( req, {})
                 		.done(function( res ) {
 							if(!res.error){
@@ -116,16 +117,16 @@
     // load data for users
     (function() {
         $(document).ready(function(){
-    
+			var cardsTable;
             // Запрос пользователей
-            let apiAddr = "http://127.0.0.1:4468/card/getlist?key=YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL";
-            $.getJSON( apiAddr, {})
+            let req = apiAddr+'/card/getlist?key=YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL';
+            $.getJSON( req, {})
                 .done(function( dataSet ) {
                 //document.getElementById('result').innerHTML = JSON.stringify(data, null, " ");
                 //console.log('Cards: '+dataSet);
                 
-                $('#cardsTable').DataTable({
-                    data: dataSet,
+                cardsTable = $('#cardsTable').DataTable({
+                    data: dataSet.cardlist,
                     columns: [
                         { title: "#" },
                         { title: "Роль" },
@@ -183,12 +184,13 @@
 		},3000);
 
 				function setSensorState(sensorName, state){
-					document.getElementById(sname).className = 'col-md-3 '+state+' text-center';
+					console.log(sensorName, state);
+					document.getElementById(sensorName).className = 'col-md-3 '+state+' text-center';
 
 				}
 				
 				socket.on('state', function(msg){
-					
+					console.log(msg);
 					switch(msg.data.type){
 						case 'sensor':
 							console.log(msg);
@@ -286,6 +288,54 @@ function platformHTML(active, config){
 
     return html
 }
+
+	// реакции на кнопки
+
+	// удалить карту
+	$( "#delCardButton" ).on( "click", function( event ) {
+		let req = apiAddr+'/card/release?card='+$("#cardToDelete").val()+'&key='+apiKey;
+		$.getJSON( req, {})
+                		.done(function( res ) {
+							if(!res.error){
+								console.log(res);
+								// now delete from table
+								cardsTable.rows().every( function () {
+									var d = this.data();
+									if(d[0] == $("#cardToDelete").val()){
+										this
+											.remove()
+											.draw();
+									}									
+								});
+								//$("#"+pname+"_showWeight").val(res.weight);
+							} else {
+								//$("#"+pname+"_showWeight").val(res.error);
+							}
+						});
+		});
+
+	// добавить карту
+	$( "#addCardButton" ).on( "click", function( event ) {
+		//card = {"id": "147,15084","role": "guard", "state": true, "name": "Торов"}
+		let card = {};
+		card.id = $("#cardToAdd").val(); 
+		card.role = $("#cardToAddRole").val();
+		card.state = true;
+		card.name = $("#cardToAddName").val();
+	
+		cardsTable.row.add([card.id,card.role,card.state,card.name]).draw( false );
+
+		let req = apiAddr+'/card/add?card='+JSON.stringify(card)+'&key='+apiKey;
+		$.getJSON( req, {})
+                		.done(function( res ) {
+							if(!res.error){
+								console.log(res)
+								//$("#"+pname+"_showWeight").val(res.weight);
+							} else {
+								//$("#"+pname+"_showWeight").val(res.error);
+							}
+						});
+		});	
     });
     })();
 </script>

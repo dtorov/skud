@@ -1,7 +1,7 @@
 
 var weightTerminal = function(config,log,callback) {
 	
-	log.skud(': weightTerminal driver start ');
+	//log.skud(': weightTerminal driver start ');
 	var self = this;
 	
 	var connected = false;
@@ -30,18 +30,19 @@ var weightTerminal = function(config,log,callback) {
 	}
 	
 	self.getWeight = function(){
-		return lastWeight;
+		return lastWeight.replace(/[\n\r]/g, '');
 	}
 	
 	tSocket.on("connect",function(data){
 		connected = true;
-		log.skud('weightTerminal '+config.addr+' connected');
+		log.skud('weightTerminal '+config.addr+' connected',1);
+		log.skud('весы '+config.addr+' подключены');
 	});
 	
 	tSocket.on("data", function(data){
     //actionOnData('weight',data);
 		lastWeight = data.slice(4);
-		callback(lastWeight.toString('utf8'));
+		callback(lastWeight.toString('utf8').replace(/[\n\r]/g, ''));
 	});
 
 	tSocket.on('error', function(er) {
