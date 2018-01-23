@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>СКУД</title>
+
+	<!-- Global stylesheets -->
+	<link href="https://fonts.googleapis.com/css?family=Roboto:400,300,100,500,700,900" rel="stylesheet" type="text/css">
+	<link href="assets/css/icons/icomoon/styles.css" rel="stylesheet" type="text/css">
+	<link href="assets/css/bootstrap.css" rel="stylesheet" type="text/css">
+	<link href="assets/css/core.css" rel="stylesheet" type="text/css">
+	<link href="assets/css/components.css" rel="stylesheet" type="text/css">
+	<link href="assets/css/colors.css" rel="stylesheet" type="text/css">
+	<link href="assets/css/datatables.min.css" rel="stylesheet" type="text/css">
+	
+	<!-- /global stylesheets -->
+
+	<!-- Core JS files -->
+	<script type="text/javascript" src="assets/js/core/libraries/jquery.min.js"></script>
+	<script type="text/javascript" src="assets/js/core/libraries/bootstrap.min.js"></script>
+	<script type="text/javascript" src="assets/js/plugins/ui/nicescroll.min.js"></script>
+	<script type="text/javascript" src="assets/js/plugins/ui/drilldown.js"></script>
+	<script type="text/javascript" src="assets/js/jquery.dataTables.min.js"></script>
+	<script type="text/javascript" src="assets/js/dataTables.bootstrap.js"></script>
+	
+	<!-- /core JS files -->
+
+	<!-- Theme JS files -->
+	<script type="text/javascript" src="assets/js/core/app.js"></script>
+	<script type="text/javascript" src="assets/js/core/libraries/jasny_bootstrap.min.js"></script>
+	<!-- /theme JS files -->
+
+	<!-- App JS files -->
+	<script type="text/javascript" src="app/app.js"></script>
+	<!-- /App JS files -->
+
+<!-- socket io  -->
+<script src="/socket.io/socket.io.js"></script>
+
+<!-- /socket io  -->
+    
+    <!-- Theme JS files -->
+    <script type="text/javascript" src="assets/js/core/app.js"></script>
+    
+	<!-- /theme JS files -->
+<script>
+
+	var socket = io();
+    // load config from rest
+
+	var platforms = {};
+	var apiKey = "YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL";
+    var apiAddr = "http://127.0.0.1:4468/config/get?key=YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL";
+    $.getJSON( apiAddr, {})
+        .done(function( data ) {
+        //document.getElementById('result').innerHTML = JSON.stringify(data, null, " ");
+		$("#result").html(JSON.stringify(data, null, " "));
+		platforms = data.platforms;
+        });
+ 
+
+
+	function getWeight(pname) {
+					console.log(pname);
+					// http://127.0.0.1:4468/getweight?pname=lab&key=key
+					let req = 'http://127.0.0.1:4468/getweight?pname='+pname+'&key='+apiKey;
+					$.getJSON( req, {})
+                		.done(function( res ) {
+							if(!res.error){
+								console.log(res)
+								$("#"+pname+"_showWeight").val(res.weight);
+							} else {$("#"+pname+"_showWeight").val(res.error);}
+						});
+				}
+
+	function barrierAction(ac){
+		console.log(ac);
+		let toDo = ac.split('.');
+		let pname = toDo[0],
+			barrier = toDo[1],
+			action = toDo[2];
+		let req = 'http://127.0.0.1:4468/barrier?pname='+pname+'&b='+barrier+'&action='+action+'&key='+apiKey;
+		$.getJSON( req, {})
+                		.done(function( res ) {
+							if(!res.error){
+								console.log(res)
+								//$("#"+pname+"_showWeight").val(res.weight);
+							} else {
+								//$("#"+pname+"_showWeight").val(res.error);
+							}
+						});
+	}
+
+	function sendToScoreboard(sb){
+		console.log(sb);
+		let toDo = sb.split('.');
+		let pname = toDo[0],
+			sbname = toDo[1],
+			text = document.getElementById(pname+"."+sbname+".text").value;
+			//text = $("#"+pname+"."+sbname+".text").val(); 
+			console.log($("#"+pname+"."+sbname+".text").val())
+		let req = 'http://127.0.0.1:4468/scoreboard/send?pname='+pname+'&sbname='+sbname+'&message='+text+'&key='+apiKey;
+		$.getJSON( req, {})
+                		.done(function( res ) {
+							if(!res.error){
+								console.log(res)
+								//$("#"+pname+"_showWeight").val(res.weight);
+							} else {
+								//$("#"+pname+"_showWeight").val(res.error);
+							}
+						});
+	}
+
+    // load data for users
+    (function() {
+        $(document).ready(function(){
+    
+            // Запрос пользователей
+            let apiAddr = "http://127.0.0.1:4468/card/getlist?key=YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL";
+            $.getJSON( apiAddr, {})
+                .done(function( dataSet ) {
+                //document.getElementById('result').innerHTML = JSON.stringify(data, null, " ");
+                //console.log('Cards: '+dataSet);
+                
+                $('#cardsTable').DataTable({
+                    data: dataSet,
+                    columns: [
+                        { title: "#" },
+                        { title: "Роль" },
+                        { title: "Статус" },
+                        { title: "Назначена" }
+                    ]
+                });
+
+				});
+				
+			
+
+            // Запрос конфига и состояния устройств
+            
+                socket.on('platforms', function(msg){
+                    console.log(msg);
+                    //var platforms = msg.config;
+                    let htmlTab = '';
+                    let htmlPlatformsTabContent = '';
+                    let active = true;    
+                    for(var p in platforms){
+                        if(active){
+                            htmlTab += '<li class=\"active\"><a href=\"#'+p+'\" data-toggle=\"tab\" aria-expanded=\"true\">'+platforms[p].readableName+'</a></li>';
+                            htmlPlatformsTabContent += platformHTML('active', platforms[p]);
+                            active = false;
+                        } else {
+                            htmlTab += '<li class=\"\"><a href=\"#'+p+'\" data-toggle=\"tab\" aria-expanded=\"true\">'+platforms[p].readableName+'</a></li>';
+                            htmlPlatformsTabContent += platformHTML('', platforms[p]);
+                        }
+                        
+                    }
+                    console.log(htmlTab);
+                    $("#platformsTab").html(htmlTab);
+                    $("#platformsTabContent").html(htmlPlatformsTabContent);
+
+					});
+				
+					
+
+				socket.on('log', function(msg){
+					let d = new Date();
+					console.log(msg);
+					let recordDate = ''+d.getFullYear()+''+(d.getMonth()+1)+''+d.getDate()+' '+d.getHours()+':'+d.getMinutes()+':'+d.getSeconds();
+					let line='<li><span class="feed-time text-muted">'+d.getHours()+':'+d.getMinutes()+':'+d.getSeconds()+'</span>'+msg.split('#')[1]+'</li>';
+					//document.getElementById('log2').innerHTML += line;
+					$( line ).insertAfter( ".startlog" );
+					document.getElementById('log2').scrollTop = document.getElementById('log2').scrollHeight;	
+				});
+
+				setTimeout(function(){
+					$("#weight.s1").attr('class','col-md-3 bg-warning text-center');
+					
+					document.getElementById('weight.s1').className = 'col-md-3 bg-warning text-center';
+				console.log('set class');
+		},3000);
+
+				function setSensorState(sensorName, state){
+					document.getElementById(sname).className = 'col-md-3 '+state+' text-center';
+
+				}
+				
+				socket.on('state', function(msg){
+					
+					switch(msg.data.type){
+						case 'sensor':
+							console.log(msg);
+							if(msg.data.value[0] == '1'){setSensorState(msg.platform+'.s1', 'bg-green')} else {setSensorState(msg.platform+'.s1', 'bg-warning')};
+							if(msg.data.value[1] == '1'){setSensorState(msg.platform+'.s2', 'bg-green')} else {setSensorState(msg.platform+'.s2', 'bg-warning')};
+							if(msg.data.value[2] == '1'){setSensorState(msg.platform+'.s3', 'bg-green')} else {setSensorState(msg.platform+'.s3', 'bg-warning')}
+						break
+						case 'reader':
+						break
+					}	
+				});
+
+				// generate html for platform
+function platformHTML(active, config){
+    let html = '';
+
+    html = '<div class="tab-pane '+active+'" id="'+config.name+'">';
+   
+    html += '<div class="row"><div class="col-md-6">';
+    if(config.devices.s1 || config.devices.s2 || config.devices.s3){
+    html += '                        <div class="content-group-lg"> \
+                                        <legend class="text-bold">Состояние датчиков</legend> \
+                                    <p class="content-group-sm">API request: <code>http://127.0.0.1:4468/card/getsensors?pname=lab&key=key</code></p> \
+                                    <div class="row" id="sensorData">';
+    if(config.devices.s1) { html += '<div class="col-md-3 bg-green text-center" id="'+config.name+'.s1">S1 </div>'; }    
+    if(config.devices.s2) { html += '<div class="col-md-3 bg-green text-center" id="'+config.name+'.s2">S2 </div>'; }
+    if(config.devices.s3) { html += '<div class="col-md-3 bg-green text-center" id="'+config.name+'.s3">S3 </div>'; }                           
+ 
+    html += '</div></div>';
+                            }    
+	html += '                   <div class="content-group-lg"> \
+                                        <legend class="text-bold">Светофоры</legend> \
+                                        <p class="content-group-sm">API request: <code>http://127.0.0.1:4468/setlight?pname=lab&state=1111&key=key</code></p> \
+                                </div> ';
+                        
+    html += '                   </div>';
+                        // end left pane
+    html += '                    <div class="col-md-6"> ';
+    if(config.devices.b1 || config.devices.b2){
+    html += '                    <div class="content-group-lg"> \
+                                        <legend class="text-bold">Шлагбаумы</legend> \
+                                        <p class="content-group-sm">API request: <code>http://127.0.0.1:4468/barrier?pname=lab&b=b1&action=open&key=key</code></p>';
+    if(config.devices.b1){
+        html += '                       <div class="btn-group"> \
+                                                <button type="button" class="btn">Шлагбаум 1:</button> \
+                                                <button type="button" class="btn btn-primary" id="'+config.name+'.b1.open" onclick="barrierAction(this.id)">Открыть</button> \
+                                                <button type="button" class="btn btn-primary" id="'+config.name+'.b1.close" onclick="barrierAction(this.id)">Закрыть</button> \
+                                        </div>';
+                                    }
+    if(config.devices.b2){
+        html += '                       <div class="btn-group"> \
+                                                <button type="button" class="btn">Шлагбаум 2:</button> \
+                                                <button type="button" class="btn btn-primary" id="'+config.name+'.b2.open" onclick="barrierAction(this.id)">Открыть</button> \
+                                                <button type="button" class="btn btn-primary" id="'+config.name+'.b2.close" onclick="barrierAction(this.id)">Закрыть</button> \
+                                        </div>';
+                                    }
+    html += '                            </div> ';
+                            }
+    html += '                   <div class="content-group-lg"> \
+                                        <legend class="text-bold">Табло</legend> \
+                                        <p class="content-group-sm">API request: <code>http://127.0.0.1:4468/scoreboard/send?pname=lab&sbname=sb3&message=привет&key=key</code></p> \
+                                        <div class="input-group"> \
+												<div class="input-group-btn"> \
+													<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">Табло 2</button> </div> \
+												<input type="text" class="form-control" placeholder="Текст для вывода на табло" id="'+config.name+'.sb2.text"> \
+												<div class="input-group-btn"> \
+													<button type="button" class="btn btn-default" aria-expanded="false" id="'+config.name+'.sb2" onclick="sendToScoreboard(this.id)">Вывести </button> \
+					                                \
+                                                </div> \
+										</div> \
+										<div class="input-group"> \
+												<div class="input-group-btn"> \
+													<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">Табло 3</button> </div> \
+												<input type="text" class="form-control" placeholder="Текст для вывода на табло" id="'+config.name+'.sb3.text"> \
+												<div class="input-group-btn"> \
+													<button type="button" class="btn btn-default" aria-expanded="false" id="'+config.name+'.sb3" onclick="sendToScoreboard(this.id)">Вывести </button> \
+					                                \
+                                                </div> \
+										</div> \
+                                </div> ';
+    
+    if(config.weightTerminal){
+    html += '                   <div class="content-group-lg"> \
+                                        <legend class="text-bold">Весы</legend> \
+                                        <p class="content-group-sm">API request: <code>http://127.0.0.1:4468/getweight?pname=lab&key=key</code></p> \
+                                        <div class="input-group"> \
+												<span class="input-group-btn">';
+	html += '<button class="btn bg-slate-700" type="button" onclick="getWeight(\''+config.name+'\')">Получить</button> ';
+	html += '</span><input type="text" class="form-control form-control bg-slate" placeholder="0 кг" id="'+config.name+'_showWeight"></div></div> ';
+                            }
+    html += '                   </div></div>';
+
+    html +=' </div>';
+
+
+    return html
+}
+    });
+    })();
+</script>
+
+</head>
+
+<body class="navbar-bottom navbar-top">
+
+	<!-- Page header -->
+	<div class="page-header page-header-inverse">
+
+		<!-- Main navbar -->
+		<div class="navbar navbar-inverse navbar-transparent navbar-fixed-top">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="index.html"><img src="assets/images/logo_light.png" alt=""></a>
+
+				<ul class="nav navbar-nav pull-right visible-xs-block">
+					<li><a data-toggle="collapse" data-target="#navbar-mobile"><i class="icon-tree5"></i></a></li>
+				</ul>
+			</div>
+
+			<div class="navbar-collapse collapse" id="navbar-mobile">
+				
+				<ul class="nav navbar-nav navbar-right">
+
+					<li class="dropdown dropdown-user">
+						<a class="dropdown-toggle" data-toggle="dropdown">
+							<img src="assets/images/image.png" alt="">
+							<span>Администратор</span>
+							<i class="caret"></i>
+						</a>
+
+						<ul class="dropdown-menu dropdown-menu-right">
+							<li><a href="#"><i class="icon-user-plus"></i> Профиль</a></li>
+							<li><a href="#"><span class="badge badge-warning pull-right">58</span> <i class="icon-comment-discussion"></i> Сообщения</a></li>
+							<li class="divider"></li>
+							<li><a href="#"><i class="icon-cog5"></i> Настройки</a></li>
+							<li><a href="#"><i class="icon-switch2"></i> Выйти</a></li>
+						</ul>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<!-- /main navbar -->
+
+
+		<!-- Page header content -->
+		<div class="page-header-content">
+			<div class="page-title">
+				<h4>СКУД Автовесовая</h4>
+			</div>			
+		</div>
+		<!-- /page header content -->
+
+
+
+
+	</div>
+	<!-- /page header -->
+
+
+	<!-- Page container -->
+	<div class="page-container" id="content">
+
+<!-- Page content -->
+<div class="page-content">
+        
+<!-- Main content -->
+<div class="content-wrapper">                    
+
+<div class="tabbable nav-tabs-vertical nav-tabs-left">
+        <ul class="nav nav-tabs nav-tabs-highlight">
+            <li class="active"><a href="#left-tab1" data-toggle="tab"><i class="icon-truck position-left"></i> Платформы</a></li>
+			<li><a href="#left-tab2" data-toggle="tab"><i class="icon-users position-left"></i> Карты</a></li>
+			<li><a href="#messages" data-toggle="tab"><i class="icon-comment position-left"></i> События</a></li>
+			<li><a href="#config" data-toggle="tab"><i class="icon-cog position-left fa-spin"></i> Конфигурация</a></li>
+            
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane active has-padding panel-body" id="left-tab1">
+                    <div class="panel panel-flat">
+                            <div class="panel-heading">
+                                <h6 class="panel-title">Платформы</h6>
+                            </div>
+
+                            <div class="panel-body">
+                                <div class="tabbable">
+                                    <ul class="nav nav-tabs nav-tabs-bottom" id="platformsTab">
+                                        <li class="active"><a href="#bottom-tab1" data-toggle="tab" aria-expanded="true">Active</a></li>
+                                        <li class=""><a href="#bottom-tab2" data-toggle="tab" aria-expanded="false">Inactive</a></li>
+
+                                    </ul>
+
+                                    <div class="tab-content" id="platformsTabContent">
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+            </div>
+
+            <div class="tab-pane has-padding" id="left-tab2">        
+               <div class="panel panel-flat">
+                    <div class="panel-heading">
+                        <h5 class="panel-title">Зарегистрированные карты</h5>
+                    </div>
+
+                    <div class="panel-body">
+                        API request: <code>http://127.0.0.1:4468/card/getlist?key=YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL</code>    
+                    <hr>
+					<div class="row">
+							<div class="col-md-5">
+									<div class="content-group-lg">
+										<legend class="text-bold"><i class="icon-user-minus position-left"></i>Удалить карту</legend>	
+										<label>Номер карты:</label>
+										<div class="input-group">
+												
+												<input type="text" class="form-control" data-mask="999,99999" placeholder="ХХХ,ХХХХХ" id="cardToDelete">
+												<span class="input-group-btn">
+													<button class="btn btn-default" type="button" id="delCardButton">Удалить</button>
+												</span>
+										</div>	
+									</div>
+								</div>
+						<div class="col-md-7 panel-flat">
+								<div class="content-group-lg">
+									<legend class="text-bold"><i class="icon-user-plus position-left"></i>Добавить карту</legend>	
+									<div class="row">
+											<div class="col-md-6">
+												<div class="form-group">
+													<label>Номер карты:</label>
+													<input type="text" placeholder="ХХХ,ХХХХХ" class="form-control" data-mask="999,99999" id="cardToAdd">
+												</div>
+											</div>
+
+											<div class="col-md-6">
+												<div class="form-group">
+													<label>Роль:</label>
+													<select name="role" class="form-control" id="cardToAddRole">
+														<option value="regular">Постоянная</option>
+														<option value="temp">Временная</option>
+														<option value="guard">Охрана</option>
+
+													</select>	
+												</div>
+											</div>
+									</div>	
+									<div class="row">
+											<div class="col-md-12">
+												<div class="form-group">
+													<label>Назначена:</label>
+													<input type="text" placeholder="Иванов Иван Иванович" class="form-control" id="cardToAddName">
+												</div>
+											</div>
+									</div>
+									<span class="input-group-btn">
+											<button class="btn btn-default" type="button" id="addCardButton">Добавить</button>
+										</span>
+								</div>
+							</div>
+						</div>
+					<legend class="text-bold"><i class="icon-users position-left"></i>Список карт</legend>
+                    <div class="table-responsive">
+                        <table class="table compact hover" id="cardsTable" cellspacing="0" width="100%">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Роль</th>
+                                    <th>Состояние</th>
+                                    <th>Назначена</th>
+                                </tr>
+                            </thead>
+
+                        </table>
+                    </div>
+                </div>
+                </div>   
+			</div>
+<!-- Tab Логов -->			
+			<div class="tab-pane has-padding" id="messages">        
+					<div class="panel panel-flat">
+						 <div class="panel-heading">
+							 <h5 class="panel-title">События системы</h5>
+						 </div>
+	 
+						 <div class="panel-body">
+							 API request: <code>http://127.0.0.1:4468/card/getlist?key=YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL</code>    
+						 <hr>
+	 
+						 <div class="table-responsive">
+								<div class="content-group-lg"> 
+										<div class="panel panel-body border-top-teal" style="overflow: scroll; height: 500px;">
+												<ul class="list-feed list-feed-time" id="log2">
+													<span class='startlog'></span>													
+												</ul>
+											</div>
+										       
+								</div>
+						 </div>
+					 </div>
+					 </div>   
+				 </div>
+<!-- Tab общих настроек системы -->
+				 <div class="tab-pane has-padding" id="config">        
+						<div class="panel panel-flat">
+							 <div class="panel-heading">
+								 <h5 class="panel-title">Конфигурация</h5>
+							 </div>
+		 
+							 <div class="panel-body">
+									API request: <code>http://127.0.0.1:4468/config/get?key=YJuVnDXz4tEmmIQp0PnhTbbxbKC6TtA9nkTclA4B5RUVRcQHByhQB1kSrv1QJjqL</code>    
+									<hr>
+									<p id="result">
+
+									</p>
+							  </div>
+						 </div>   
+					 </div>
+        </div>
+    </div>
+
+</div>
+<!-- /main content -->
+
+</div>
+<!-- /page content -->
+
+	</div>
+	<!-- /page container -->
+
+
+	<!-- Footer -->
+	<div class="navbar navbar-default navbar-fixed-bottom">
+		<ul class="nav navbar-nav visible-xs-block">
+			<li><a class="text-center collapsed" data-toggle="collapse" data-target="#footer"><i class="icon-circle-up2"></i></a></li>
+		</ul>
+
+		<div class="navbar-collapse collapse" id="footer">
+			<div class="navbar-text">
+				&copy; 2017. <a href="#" class="navbar-link">СКУД Автовесовая</a>
+			</div>
+
+			<div class="navbar-right">
+				<ul class="nav navbar-nav">
+					<li><a href="#">О программе</a></li>
+					<li><a href="#">Условия использования</a></li>
+					<li><a href="#">Контакты</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<!-- /footer -->
+
+</body>
+</html>
