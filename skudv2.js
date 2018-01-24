@@ -11,7 +11,12 @@ var Datastore 		= require('nedb')
   , logDb = new Datastore({ filename: './log/log.db', autoload: true });
 
 // debug
-var debugMode = false;  
+var debugMode = true;  
+
+// MQTT Server start
+
+var mqttDriver  	= require('./app/mqtt');
+var mqttServer 		= new mqttDriver(config,log);
 
 //============== REST and ...
 var path            = require('path'); // модуль для парсинга пути
@@ -61,6 +66,7 @@ app.use(express.static(path.join(__dirname, "public")));
 			}
 			
 		}
+		
 
 // ------------ Работа с log
 

@@ -9,9 +9,9 @@
 		"lab": {
 			"name": "lab",
 			"readableName": "Лаборатория",
-			"driver": "nais",
-			"addr":"10.2.3.12",
-			"port":"4001",
+			"driver": "mqtt",
+			"addr":"127.0.0.1",
+			"port":"1883",
 			"devices": {
 				"s1": true, "s2": true, "s3": true,
 				"r1": 1, "r2": 2, "r3": 3,
@@ -49,9 +49,9 @@
 		"weight": {
 			"name": "weight",
 			"readableName": "Весовая",
-			"driver": "nais",
-			"addr":"10.2.3.13",
-			"port":"4001",
+			"driver": "mqtt",
+			"addr":"127.0.0.1",
+			"port":"1883",
 			"devices": {
 				"s1": true, "s2": true, "s3": true,
 				"r1": 1, "r2": 2, "r3": 3,
